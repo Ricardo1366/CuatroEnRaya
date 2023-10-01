@@ -168,6 +168,10 @@ bool IniciaExpansor()
 // Activa un proceso determinado.
 void IniciaProceso()
 {
+#if defined(DEBUG)	
+	Serial.print("Proceso iniciado "); Serial.print(proceso);
+	Serial.print("  Animación = "); Serial.println(animacion);
+#endif
 	contador = 0;
 	Procesos.attach_ms(tiempo_PorPaso, ActivaPaso);
 }

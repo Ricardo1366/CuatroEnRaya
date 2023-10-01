@@ -6,11 +6,14 @@
 #include <Adafruit_MCP23X17.h>
 #include <EEPROM.h>
 
-#define DEBUG
+#define NODEBUG
 
 #define NUMEROFILAS 8
 #define NUMEROCOLUMNAS 8
 #define NUMEROPULSADORES 8
+#define TIEMPOANIMACION 5000			// 1 minuto
+#define TIEMPOPPARTIDAABANDONADA 300000	// 5 minutos
+#define TIEMPOPASOANIMACIONES 125
 
 // Activa el siguiente paso de un proceso.
 void ActivaPaso();
@@ -56,6 +59,30 @@ enum ModoConfiguracion
 	Intensidad
 };
 
+// Control de las animaciones.
+enum Animacion
+{
+	ninguna,
+	barraVertical,
+	barraVerticalInversa,
+	dobleBarraVertical,
+	barraHorizontal,
+	barraHorizontalInversa,
+	dobleBarraHorizontal,
+	diagonalIzq,
+	diagonalDcha,
+	diagonalIzqInversa,
+	diagonalDchaInversa,
+	dobleDiagonalIzquierda,
+	dobleDiagonalDerecha,
+	diagonalIzdaDcha,
+	diagonalIzdaDchaInversa,
+	cuadrados,
+	cuadradosInversos,
+	NumeroAnimaciones
+};
+
+
 // Pulsadores
 const byte P_OK = 11;
 const byte P_START = 8;
@@ -73,6 +100,7 @@ const byte Pr_PonerFicha = 1;
 const byte Pr_ColumnaLlena = 2;
 const byte Pr_InicioTablero = 3;
 const byte Pr_MuestraGanador = 4;
+const byte Pr_Animacion = 5;
 
 // ############# Configuración ESP8266 ###############
 const byte pinAltavoz = D7;
@@ -87,7 +115,7 @@ const byte filas = 6;	                    // Nº de filas
 const int numeroLeds = (NUMEROFILAS * NUMEROCOLUMNAS) + NUMEROPULSADORES * 2; // Nº total de leds (Filas * columnas + pulsadores)
 const byte direccionExpansor = 0x20;        // Dirección del expansor (I2C)
 
-extern byte contador;                		// Contador.
+extern int contador;                		// Contador.
 extern byte fila;				            // Fila seleccionada.
 extern byte columna;            			// Columna seleccionada.
 extern Config4eR config;            		// Cofiguración del programa.
@@ -114,9 +142,9 @@ extern unsigned int tiempo_ColumnaLlena;    // Tiempo animación "Error columna 
 extern int avanceFila;
 extern int avanceColumna;
 extern ModoConfiguracion modoConfig;        // indica que opción está configurando el usuario.
-
+extern byte numeroColores;
 extern byte numeros[10][8];
-
+extern int veces;							// Nº de veces que se repite una función de animación.
 extern MatrizLed tableroLed;				// Clase para cálculo posición led.
 extern MatrizLed pulsadores;				// Leds asociados a los pulsadores.
 
@@ -132,3 +160,7 @@ extern byte numero;
 extern Adafruit_MCP23X17 expansor;			 // Configuración expansor de puertos para los pulsadores
 extern byte pulsador;				 // Nº del último pulsador accionado.
 extern volatile bool teclaPulsada;	 // Indica si se ha accionado algún pulsador.
+
+extern uint32 ultimaPulsacion;
+extern uint32 tiempoActivacion;
+extern byte animacion;

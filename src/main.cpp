@@ -7,17 +7,16 @@ PINES USADOS
 #include <entorno.h>
 #include <FuncionesLed.h>
 #include <Procesos.h>
+#include <Efectos.h>
 
 // #define NOVERCOLOR
 
-
-
 // ########### Variables programa #############################
-byte contador = 0;		 				// Contador.
-byte fila;				 				// Fila seleccionada.
-byte columna;			 				// Columna seleccionada.
-Config4eR config;		 				// Cofiguración del programa.
-Config4eR configTemp;	 				// Valores temporales (mientras el usuario cambia la configuración)
+int contador = 0;	  // Contador.
+byte fila;			  // Fila seleccionada.
+byte columna;		  // Columna seleccionada.
+Config4eR config;	  // Cofiguración del programa.
+Config4eR configTemp; // Valores temporales (mientras el usuario cambia la configuración)
 byte salvaColumna[columnas] = {0};
 byte salvaFila[filas] = {0};
 byte tablero[columnas][filas] = {0};	// Control de las jugadas.
@@ -39,21 +38,28 @@ unsigned int tiempo_PonerFicha = 250;	// Tiempo animación "Poner una ficha".
 unsigned int tiempo_ColumnaLlena = 500; // Tiempo animación "Error columna llena".
 int avanceFila = 0;
 int avanceColumna = 0;
+int veces = 0;
+uint32 tiempoActivacion;
 ModoConfiguracion modoConfig = ModoConfiguracion::Ninguna; // indica que opción está configurando el usuario.
 
 // ######## VARIABLES CONTROL LEDS ##################
-CRGB leds[numeroLeds];					// Array leds.
-CRGB colores[7];						// Posibles colores a utilizar. (El 0 es el de fondo)
-CRGB color[2][3];						// Array colores (3 colores x 2 intensidades)
+CRGB leds[numeroLeds]; // Array leds.
+CRGB colores[7];	   // Posibles colores a utilizar. (El 0 es el de fondo)
+CRGB color[2][3];	   // Array colores (3 colores x 2 intensidades)
 byte nivel = 0;
 byte letra = 255;
 byte numero = 255;
 byte numeros[10][8] = {{28, 34, 50, 42, 38, 34, 28, 0}, {8, 12, 8, 8, 8, 8, 28, 0}, {28, 34, 32, 16, 8, 4, 62, 0}, {28, 34, 32, 24, 32, 34, 28, 0}, {16, 24, 20, 18, 62, 16, 16, 0}, {62, 2, 30, 32, 32, 34, 28, 0}, {56, 4, 2, 30, 34, 34, 28, 0}, {62, 32, 32, 16, 8, 8, 8, 0}, {28, 34, 34, 28, 34, 34, 28, 0}, {28, 34, 34, 60, 32, 34, 28, 0}};
 
+byte numeroColores = sizeof(colores) / sizeof(CRGB);
+
 // ############ Variables control expansor de puertos ##############
-Adafruit_MCP23X17 expansor;			 // Configuración expansor de puertos para los pulsadores
-byte pulsador = 255;				 // Nº del último pulsador accionado.
-volatile bool teclaPulsada = false;	 // Indica si se ha accionado algún pulsador.
+Adafruit_MCP23X17 expansor;			// Configuración expansor de puertos para los pulsadores
+byte pulsador = 255;				// Nº del último pulsador accionado.
+volatile bool teclaPulsada = false; // Indica si se ha accionado algún pulsador.
+
+byte animacion = Animacion::ninguna;
+uint32 ultimaPulsacion = millis();
 
 // Activa el siguiente paso de un proceso.
 IRAM_ATTR void ActivaPaso()
@@ -66,9 +72,9 @@ IRAM_ATTR void ComprobarLectura()
 {
 	// Ha saltado la interrupción. El pin 19 y/o 20 (INTA, INTB) se han puesto a cero.
 	teclaPulsada = true;
-	digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));
+	// digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 }
-	uint32 tiempo = millis();
+// uint32 tiempo = millis();
 
 void setup()
 {
@@ -78,12 +84,16 @@ void setup()
 	byte intensidadFondo = 0;
 
 	// Si estamos en modo "Depurar" activamos la comunicación con el monitor serial.
+#if defined(DEBUG_)
+	Serial.begin(115200);
+#endif
+
 #if defined(DEBUG)
 	Serial.begin(115200);
 	delay(2000);
 	Serial.println(F("\nInicio configuración. "));
 	pinMode(LED_BUILTIN, OUTPUT);
-	digitalWrite(LED_BUILTIN,LOW);
+	digitalWrite(LED_BUILTIN, LOW);
 #endif
 	// Leemos la configuración almacenada. Si algun valor no es correcto es porque no se ha configurado
 	// y cargamos los valores por defecto.
@@ -230,34 +240,33 @@ void setup()
 
 	// Inicializamos la función que nos va a calcular la posición del led en el tablero.
 	tableroLed.begin(NUMEROCOLUMNAS, NUMEROFILAS, ml_Inicio::Inicio_Inferior_Izquierda, ml_Direccion::Direccion_Vertical);
+
 	// Los pulsadores están después del tablero. Hay que indicar el offset con el número de leds del tablero.
-	pulsadores.begin(NUMEROPULSADORES, 2,ml_Inicio::Inicio_Inferior_Izquierda,ml_Direccion::Direccion_Horizontal, NUMEROFILAS * NUMEROCOLUMNAS);
+	pulsadores.begin(NUMEROPULSADORES, 2, ml_Inicio::Inicio_Inferior_Izquierda, ml_Direccion::Direccion_Horizontal, NUMEROFILAS * NUMEROCOLUMNAS);
+
 	// Antes de activar las interrupciones del ESP8266 leemos el expansor por si hay alguna interrupción
 	// pendiente, borrarla y empezar "limpios".
 	pulsador = expansor.readGPIOAB();
-	Serial.println(pulsador);
+
 	// Habilita las interrupciones en el ESP8266
 	attachInterrupt(pinInterrupciones, ComprobarLectura, FALLING);
 
 	// Iniciamos el tablero.
 	LEDS.clear(true);
 	IniciaTablero();
+
+	ultimaPulsacion = millis();
+	tiempoActivacion = TIEMPOANIMACION;
 }
 
 void loop()
 {
-	if(millis() - tiempo > 3000){
-		Serial.print("Tecla pulsada = "); Serial.print(teclaPulsada); Serial.print(" | En proceso = "); Serial.print(enProceso);
-		if(enProceso){
-			Serial.print(" | Proceso = ");Serial.print(proceso);
-		}
-		Serial.print(" | ");
-			pulsador = expansor.readGPIOAB();
-	Serial.print(pulsador);
 
-		Serial.println();
-		tiempo = millis();
+	if (teclaPulsada)
+	{
+		ultimaPulsacion = millis();
 	}
+
 	if (teclaPulsada && !enProceso)
 	{
 		// La ponemos a false para entrar solo una vez.
@@ -371,7 +380,7 @@ void loop()
 					if (!enModoConfig)
 					{
 #if defined(DEBUG)
-				Serial.println(F("cargamos valores. "));
+						Serial.println(F("cargamos valores. "));
 #endif
 						configTemp = config;
 					}
@@ -385,28 +394,28 @@ void loop()
 					if (pulsador == P_P1)
 					{
 #if defined(DEBUG)
-				Serial.println(F("Configurando turno. "));
+						Serial.println(F("Configurando turno. "));
 #endif
 						modoConfig = ModoConfiguracion::Turno;
 					}
 					if (pulsador == P_P2)
 					{
 #if defined(DEBUG)
-				Serial.println(F("Configurando color jugador 1. "));
+						Serial.println(F("Configurando color jugador 1. "));
 #endif
 						modoConfig = ModoConfiguracion::Color1;
 					}
 					if (pulsador == P_P3)
 					{
 #if defined(DEBUG)
-				Serial.println(F("Configurando color jugador 1. "));
+						Serial.println(F("Configurando color jugador 1. "));
 #endif
 						modoConfig = ModoConfiguracion::Color2;
 					}
 					if (pulsador == P_P4)
 					{
 #if defined(DEBUG)
-				Serial.println(F("Configurando intensidad. "));
+						Serial.println(F("Configurando intensidad. "));
 #endif
 						modoConfig = ModoConfiguracion::Intensidad;
 					}
@@ -501,6 +510,122 @@ void loop()
 				LEDS.show();
 				juegoEnMarcha = false;
 				break;
+			case Pr_Animacion:
+				// Si hemos llegado a la última animación empezamos de nuevo por la primera.
+				switch (animacion)
+				{
+				case Animacion::barraVertical:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaBarra((contador - 1), true, DameColor((contador - 1) / NUMEROCOLUMNAS, config.NivelIntensidad));
+					LEDS.show();
+					break;
+
+				case Animacion::barraHorizontal:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaBarra((contador - 1), false, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
+					LEDS.show();
+					break;
+
+				case Animacion::barraVerticalInversa:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaBarra((repeticiones - contador), true, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
+					LEDS.show();
+					break;
+
+				case Animacion::barraHorizontalInversa:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaBarra((repeticiones - contador), false, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
+					LEDS.show();
+					break;
+
+				case Animacion::diagonalIzq:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.show();
+					break;
+
+				case Animacion::diagonalDcha:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.show();
+					break;
+
+				case Animacion::diagonalIzqInversa:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.show();
+					break;
+
+				case Animacion::diagonalDchaInversa:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.show();
+					break;
+				case Animacion::dobleBarraHorizontal:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaBarra((contador - 1), false, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
+					calculaBarra((repeticiones - contador), false, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
+					LEDS.show();
+					break;
+				case Animacion::dobleBarraVertical:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaBarra((contador - 1), true, DameColor((contador - 1) / NUMEROCOLUMNAS, config.NivelIntensidad));
+					calculaBarra((repeticiones - contador), true, DameColor((contador - 1) / NUMEROCOLUMNAS, config.NivelIntensidad));
+					LEDS.show();
+					break;
+				case Animacion::dobleDiagonalIzquierda:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.show();
+					break;
+
+				case Animacion::dobleDiagonalDerecha:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.show();
+					break;
+				case Animacion::diagonalIzdaDcha:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.show();
+					break;
+				case Animacion::diagonalIzdaDchaInversa:
+					// Contador empieza en 1, pero esta función empieza por cero.
+					LEDS.clear(0);
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.show();
+					break;
+				case Animacion::cuadrados:
+					LEDS.clear(0);
+					calculaCuadrado((contador - 1) % veces, DameColor((contador - 1) / veces, config.NivelIntensidad));
+					LEDS.show();
+					break;
+				case Animacion::cuadradosInversos:
+					LEDS.clear(0);
+					calculaCuadrado( veces - ((contador - 1) % veces) - 1, DameColor((contador - 1) / veces, config.NivelIntensidad));
+					LEDS.show();
+					break;
+				default:
+					break;
+				}
+				break;
 			default:
 				break;
 			}
@@ -523,8 +648,65 @@ void loop()
 				comprobarFinProceso = true;
 			}
 		}
+
+		// Si pulsan una tecla durante la animación, paramos la animación.
+		if (teclaPulsada && (proceso == Pr_Animacion))
+		{
+			// Salir del proceso animación.
+			enProceso = false;
+			ultimaPulsacion = millis();
+			animacion = Animacion::ninguna;
+			// ver que hago.
+		}
+
+		// Comprobamos si ha pasado el tiempo necesario para activar una animación.
+
+		// Si pulsan una tecla durante un proceso la ignoramos.
+		if (teclaPulsada)
+		{
+			teclaPulsada = false;
+			pulsador = expansor.getLastInterruptPin();
+		}
 	}
 
+	// Comprobamos si hay que activar las animaciones.
+	if (!enProceso && ((millis() - ultimaPulsacion) > tiempoActivacion))
+	{
+#if defined(DEBUG)
+		Serial.println("Activamos animaciones");
+#endif
+		enProceso = true;
+		proceso = Pr_Animacion;
+		animacion++;
+		if (animacion == Animacion::NumeroAnimaciones)
+		{
+			animacion = 1;
+		}
+		enProceso = true;
+		siguientePaso = true;
+		tiempo_PorPaso = TIEMPOPASOANIMACIONES;
+
+		// Configuramos repeticiones, tiempo por paso y otras características de las animaciones.
+		if (animacion >= Animacion::barraVertical && animacion <= Animacion::dobleBarraVertical)
+			repeticiones = NUMEROCOLUMNAS * numeroColores;
+		
+		if (animacion >= Animacion::barraHorizontal && animacion <= Animacion::dobleBarraHorizontal)
+			repeticiones = NUMEROFILAS * numeroColores;
+		
+		if (animacion >= Animacion::diagonalIzq && animacion <= Animacion::diagonalIzdaDchaInversa)
+			repeticiones = (NUMEROFILAS * 2 - 1) * numeroColores;
+		
+		if (animacion >= Animacion::cuadrados && animacion <= Animacion::cuadradosInversos)
+		{
+			veces = round((double)NUMEROFILAS / (double)2);
+			repeticiones =  veces * numeroColores;
+			tiempo_PorPaso = TIEMPOPASOANIMACIONES * 2;
+		}
+
+		IniciaProceso();
+	}
+
+	// Acciones a realizar cuando finaliza un proceso.
 	if (comprobarFinProceso)
 	{
 #if defined(DEBUG)
@@ -575,9 +757,15 @@ void loop()
 
 			PintaTablero();
 			break;
+		case Pr_Animacion:
+			// Cuando finaliza un proceso de animación lanzamos el siguiente.
+			enProceso = true;
+			siguientePaso = false;
+			IniciaProceso();
 		default:
 			break;
 		}
 	}
+
 	pulsador = 255;
 }
