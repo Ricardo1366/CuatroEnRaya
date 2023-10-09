@@ -1,7 +1,11 @@
 /*
 PINES USADOS
 ===================================
-
+Altavoz = 		 D7
+Interrupciones = D6
+Leds = 			 D5
+Reset = 		 D8	(Expansor de puertos)
+I2C =			 D1, D2
 */
 #include <Arduino.h>
 #include <entorno.h>
@@ -457,7 +461,7 @@ void loop()
 				{
 					for (byte j = 0; j < 8; j++)
 					{
-						leds[tableroLed.posicion(i, j)] = contador == (i + 1) ? color[nivel][0] : CRGB::Black;
+						leds[tableroLed.posicion(i, j)] = contador == (i + 1) ? color[0][0] : CRGB::Black;
 					}
 				}
 				LEDS.show();
@@ -637,8 +641,8 @@ void loop()
 					{
 						X = contador / NUMEROFILAS;
 						Y = X + 1;
-						if(X>numeroColores) X= 0;
-						if(Y>numeroColores) Y = 0;
+						if (X > numeroColores)	X = 0;
+						if (Y > numeroColores)	Y = 0;
 						leds[tableroLed.posicion(i, contador % NUMEROFILAS)] = contador % 2 == 0 ? DameColor(X, config.NivelIntensidad) : DameColor(Y, config.NivelIntensidad);
 						leds[tableroLed.posicion(i + 1, contador % NUMEROFILAS)] = contador % 2 == 1 ? DameColor(X, config.NivelIntensidad) : DameColor(Y, config.NivelIntensidad);
 					}
