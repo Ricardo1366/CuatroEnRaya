@@ -17,3 +17,5 @@ void DibujaTurno(byte turnoActual);
 // Dibuja el estado actual del tablero.
 void PintaTablero();
 
+// Asigna una posición contigua al azar.
+void Mosca();

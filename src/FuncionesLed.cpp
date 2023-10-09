@@ -13,7 +13,7 @@ void AsignaLetra()
 	// Iluminamos solo la letra selecciomada.
 	for (byte i = 0; i < 8; i++)
 	{
-		leds[pulsadores.posicion(i,ledsLetras)] = i == letra ? color[nivel][turno1 ? 1 : 2] : CRGB::Black;
+		leds[pulsadores.posicion(i, ledsLetras)] = i == letra ? color[nivel][turno1 ? 1 : 2] : CRGB::Black;
 	}
 	LEDS.show();
 }
@@ -24,7 +24,7 @@ void AsignaNumero()
 	//  Iluminamos solo la letra selecciomada.
 	for (byte i = 0; i < 8; i++)
 	{
-		leds[pulsadores.posicion(i,ledsNumeros)] = i == numero ? color[nivel][turno1 ? 1 : 2] : CRGB::Black;
+		leds[pulsadores.posicion(i, ledsNumeros)] = i == numero ? color[nivel][turno1 ? 1 : 2] : CRGB::Black;
 	}
 	LEDS.show();
 }
@@ -79,16 +79,23 @@ void DibujaTurno(byte turnoActual)
 {
 	byte posicion = 0;
 	CRGB color_ = turnoActual == 1 ? DameColor(configTemp.color1, configTemp.NivelIntensidad) : DameColor(configTemp.color2, configTemp.NivelIntensidad);
-	CRGB colorFondo_ = DameColor(0, DameIntensidadFondo(configTemp.NivelIntensidad));
+	// CRGB colorFondo_ = DameColor(0, DameIntensidadFondo(configTemp.NivelIntensidad));
+	CRGB colorFondo_ = DameColor(0, 1); // Ponemos el fondo al mínimo
+#if defined(DEBUG)
+	Serial.print("Dibujamos turno ");
+	Serial.println(turnoActual);
+#endif
 	// Dibujamos el turno en el tablero.
 	for (byte f = 0; f < 8; f++)
 	{
 		posicion = 1;
 		for (byte p = 0; p < 8; p++)
 		{
-			leds[tableroLed.posicion(f, p)] = (numeros[turnoActual][7 - f] && posicion) ? color_ : colorFondo_;
+			Serial.print((numeros[turnoActual][7 - f] & posicion));
+			leds[tableroLed.posicion(p, f)] = (numeros[turnoActual][7 - f] & posicion) ? color_ : colorFondo_;
 			posicion <<= 1;
 		}
+		Serial.println();
 	}
 }
 
@@ -107,3 +114,14 @@ void PintaTablero()
 	AsignaLetra();
 }
 
+// Asigna una posición al azar al led encendido.
+void Mosca()
+{
+	X += (1 - (random(1, 100000000.0) % 3));
+	Y += (1 - (random(1, 100000000.0) % 3));
+	if(X < 0) X = 0;
+	if(Y < 0) Y = 0;
+	if(X == NUMEROCOLUMNAS) X--;
+	if(Y == NUMEROFILAS) Y--;
+	leds[tableroLed.posicion(X,Y)] = DameColor(contador / 50, config.NivelIntensidad);
+}

@@ -198,6 +198,9 @@ void LetraEnConfig()
 		break;
 	case ModoConfiguracion::Turno:
 		// Si no es el pulsador 1 o 2 no hacemos nada.
+#if defined(DEBUG)
+	Serial.println("Asignamos turno");
+#endif
 		if (letra > 1)
 		{
 			break;
@@ -394,7 +397,7 @@ void ValoresxDefecto()
 	config.color1 = 4;
 	config.color2 = 1;
 	config.Turno = true;
-	config.NivelIntensidad = 4;
+	config.NivelIntensidad = 6;
 	config.configurado = 1;
 	// Grabamos configuración.
 	EEPROM.put(0, config);

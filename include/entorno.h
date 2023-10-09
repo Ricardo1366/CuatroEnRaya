@@ -79,6 +79,11 @@ enum Animacion
 	diagonalIzdaDchaInversa,
 	cuadrados,
 	cuadradosInversos,
+	cuadradosColoridos,
+	elCorreCaminos,
+	cruceVertical,
+	ajedrez,
+	mosca,
 	NumeroAnimaciones
 };
 
@@ -147,7 +152,7 @@ extern byte numeros[10][8];
 extern int veces;							// Nº de veces que se repite una función de animación.
 extern MatrizLed tableroLed;				// Clase para cálculo posición led.
 extern MatrizLed pulsadores;				// Leds asociados a los pulsadores.
-
+extern int X,Y;								// Posición actual del led en algunas animaciones.
 // ######## VARIABLES CONTROL LEDS ##################
 extern CRGB leds[numeroLeds];				// Array leds.
 extern CRGB colores[7];						// Posibles colores a utilizar. (El 0 es el de fondo)

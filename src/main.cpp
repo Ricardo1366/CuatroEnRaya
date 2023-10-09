@@ -39,6 +39,7 @@ unsigned int tiempo_ColumnaLlena = 500; // Tiempo animación "Error columna llen
 int avanceFila = 0;
 int avanceColumna = 0;
 int veces = 0;
+int X, Y;
 uint32 tiempoActivacion;
 ModoConfiguracion modoConfig = ModoConfiguracion::Ninguna; // indica que opción está configurando el usuario.
 
@@ -58,7 +59,7 @@ Adafruit_MCP23X17 expansor;			// Configuración expansor de puertos para los pul
 byte pulsador = 255;				// Nº del último pulsador accionado.
 volatile bool teclaPulsada = false; // Indica si se ha accionado algún pulsador.
 
-byte animacion = Animacion::ninguna;
+byte animacion = Animacion::diagonalIzdaDchaInversa;
 uint32 ultimaPulsacion = millis();
 
 // Activa el siguiente paso de un proceso.
@@ -102,19 +103,6 @@ void setup()
 	config = EEPROM.get(0, config);
 	if (config.configurado != 1 || config.color1 > 6 || config.color2 > 6 || config.NivelIntensidad > 8)
 	{
-#ifdef DEBUG
-		Serial.println("Valores incorrectos: ");
-		Serial.print(config.color1);
-		Serial.print(", ");
-		Serial.print(config.color2);
-		Serial.print(", ");
-		Serial.print(config.configurado);
-		Serial.print(", ");
-		Serial.print(config.NivelIntensidad);
-		Serial.print(", ");
-		Serial.println(config.Turno);
-#endif // DEBUG
-
 		ValoresxDefecto();
 	}
 #ifdef DEBUG
@@ -288,7 +276,6 @@ void loop()
 		{
 			// Estamos leyendo de forma continua hasta que el usuario suelte el pulsador.
 			delay(50);
-			Serial.print(expansor.readGPIOAB());
 		}
 		// Comprobamos que la lectura sea buena.
 		if (pulsador > 15)
@@ -357,7 +344,7 @@ void loop()
 					for (byte i = 0; i < 4; i++)
 					{
 						/* code */
-						LEDS.clear();
+						LEDS.clear(true);
 						LEDS.show();
 						delay(500);
 						PintaTablero();
@@ -431,7 +418,7 @@ void loop()
 		if (siguientePaso)
 		{
 			siguientePaso = false;
-			contador++;
+			// contador++;
 			switch (proceso)
 			{
 			case Pr_PonerFicha:
@@ -516,110 +503,150 @@ void loop()
 				{
 				case Animacion::barraVertical:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaBarra((contador - 1), true, DameColor((contador - 1) / NUMEROCOLUMNAS, config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaBarra(contador, true, DameColor(contador / NUMEROCOLUMNAS, config.NivelIntensidad));
 					LEDS.show();
 					break;
 
 				case Animacion::barraHorizontal:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaBarra((contador - 1), false, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaBarra(contador, false, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
 					LEDS.show();
 					break;
 
 				case Animacion::barraVerticalInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaBarra((repeticiones - contador), true, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaBarra((repeticiones - contador), true, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
 					LEDS.show();
 					break;
 
 				case Animacion::barraHorizontalInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaBarra((repeticiones - contador), false, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaBarra((repeticiones - contador), false, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
 					LEDS.show();
 					break;
 
 				case Animacion::diagonalIzq:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					LEDS.show();
 					break;
 
 				case Animacion::diagonalDcha:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					LEDS.show();
 					break;
 
 				case Animacion::diagonalIzqInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					LEDS.show();
 					break;
 
 				case Animacion::diagonalDchaInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					LEDS.show();
 					break;
 				case Animacion::dobleBarraHorizontal:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaBarra((contador - 1), false, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
-					calculaBarra((repeticiones - contador), false, DameColor((contador - 1) / NUMEROFILAS, config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaBarra(contador, false, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
+					calculaBarra(repeticiones - contador, false, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
 					LEDS.show();
 					break;
 				case Animacion::dobleBarraVertical:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaBarra((contador - 1), true, DameColor((contador - 1) / NUMEROCOLUMNAS, config.NivelIntensidad));
-					calculaBarra((repeticiones - contador), true, DameColor((contador - 1) / NUMEROCOLUMNAS, config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaBarra(contador, true, DameColor(contador / NUMEROCOLUMNAS, config.NivelIntensidad));
+					calculaBarra(repeticiones - contador, true, DameColor(contador / NUMEROCOLUMNAS, config.NivelIntensidad));
 					LEDS.show();
 					break;
 				case Animacion::dobleDiagonalIzquierda:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					LEDS.show();
 					break;
 
 				case Animacion::dobleDiagonalDerecha:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					LEDS.show();
 					break;
 				case Animacion::diagonalIzdaDcha:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					calculaDiagonal((contador - 1) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					LEDS.show();
 					break;
 				case Animacion::diagonalIzdaDchaInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(0);
-					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor((contador - 1) / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
+					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					LEDS.show();
 					break;
 				case Animacion::cuadrados:
-					LEDS.clear(0);
-					calculaCuadrado((contador - 1) % veces, DameColor((contador - 1) / veces, config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaCuadrado(contador % veces, DameColor(contador / veces, config.NivelIntensidad));
 					LEDS.show();
 					break;
 				case Animacion::cuadradosInversos:
-					LEDS.clear(0);
-					calculaCuadrado( veces - ((contador - 1) % veces) - 1, DameColor((contador - 1) / veces, config.NivelIntensidad));
+					LEDS.clear(true);
+					calculaCuadrado(veces - (contador % veces) - 1, DameColor(contador / veces, config.NivelIntensidad));
+					LEDS.show();
+					break;
+				case Animacion::cuadradosColoridos:
+					calculaCuadrado(contador % veces, DameColor(contador % numeroColores, config.NivelIntensidad));
+					LEDS.show();
+					break;
+
+				case Animacion::elCorreCaminos:
+					LEDS.clear(true);
+					leds[contador % (NUMEROCOLUMNAS * NUMEROFILAS)] = DameColor(contador / (NUMEROCOLUMNAS * NUMEROFILAS), config.NivelIntensidad);
+					LEDS.show();
+					break;
+				case Animacion::cruceVertical:
+					LEDS.clear(true);
+					for (byte i = 0; i < NUMEROCOLUMNAS; i += 2)
+					{
+						leds[tableroLed.posicion(i, contador % NUMEROFILAS)] = DameColor(contador / NUMEROFILAS, config.NivelIntensidad);
+						leds[tableroLed.posicion(i + 1, NUMEROFILAS - (contador % NUMEROFILAS) - 1)] = DameColor(contador / NUMEROFILAS, config.NivelIntensidad);
+					}
+					LEDS.show();
+					break;
+				case Animacion::ajedrez:
+					if (contador % NUMEROFILAS == 0)
+					{
+						LEDS.clear(true);
+					}
+					for (byte i = 0; i < NUMEROCOLUMNAS; i += 2)
+					{
+						X = contador / NUMEROFILAS;
+						Y = X + 1;
+						if(X>numeroColores) X= 0;
+						if(Y>numeroColores) Y = 0;
+						leds[tableroLed.posicion(i, contador % NUMEROFILAS)] = contador % 2 == 0 ? DameColor(X, config.NivelIntensidad) : DameColor(Y, config.NivelIntensidad);
+						leds[tableroLed.posicion(i + 1, contador % NUMEROFILAS)] = contador % 2 == 1 ? DameColor(X, config.NivelIntensidad) : DameColor(Y, config.NivelIntensidad);
+					}
+					LEDS.show();
+					break;
+				case Animacion::mosca:
+					leds[tableroLed.posicion(X, Y)] = 0;
+					Mosca();
 					LEDS.show();
 					break;
 				default:
@@ -629,7 +656,7 @@ void loop()
 			default:
 				break;
 			}
-
+			contador++;
 			// Comprobamos si es la última repetición.
 			if (contador == repeticiones)
 			{
@@ -689,18 +716,38 @@ void loop()
 		// Configuramos repeticiones, tiempo por paso y otras características de las animaciones.
 		if (animacion >= Animacion::barraVertical && animacion <= Animacion::dobleBarraVertical)
 			repeticiones = NUMEROCOLUMNAS * numeroColores;
-		
+
 		if (animacion >= Animacion::barraHorizontal && animacion <= Animacion::dobleBarraHorizontal)
 			repeticiones = NUMEROFILAS * numeroColores;
-		
+
 		if (animacion >= Animacion::diagonalIzq && animacion <= Animacion::diagonalIzdaDchaInversa)
 			repeticiones = (NUMEROFILAS * 2 - 1) * numeroColores;
-		
-		if (animacion >= Animacion::cuadrados && animacion <= Animacion::cuadradosInversos)
+
+		if (animacion >= Animacion::cuadrados && animacion <= Animacion::cuadradosColoridos)
 		{
 			veces = round((double)NUMEROFILAS / (double)2);
-			repeticiones =  veces * numeroColores;
+			repeticiones = veces * numeroColores;
 			tiempo_PorPaso = TIEMPOPASOANIMACIONES * 2;
+		}
+		if (animacion == Animacion::elCorreCaminos)
+		{
+			repeticiones = NUMEROFILAS * NUMEROCOLUMNAS * numeroColores;
+			tiempo_PorPaso = 75;
+		}
+
+		if (animacion >= Animacion::cruceVertical && animacion <= Animacion::ajedrez)
+		{
+			repeticiones = NUMEROFILAS * numeroColores;
+		}
+
+		if (animacion == Animacion::mosca)
+		{
+			repeticiones = numeroColores * 50;
+			tiempo_PorPaso = 75;
+			X = NUMEROCOLUMNAS / 2;
+			Y = NUMEROFILAS / 2;
+			LEDS.clear(true);
+			randomSeed(millis());
 		}
 
 		IniciaProceso();
@@ -766,6 +813,5 @@ void loop()
 			break;
 		}
 	}
-
 	pulsador = 255;
 }
