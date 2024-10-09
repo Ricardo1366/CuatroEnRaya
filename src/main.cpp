@@ -662,7 +662,7 @@ void loop()
 			}
 			contador++;
 			// Comprobamos si es la última repetición.
-			if (contador == repeticiones)
+			if (contador == (int)repeticiones)
 			{
 
 				// Informamos "Fin del proceso".
