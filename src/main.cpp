@@ -207,13 +207,13 @@ void setup()
 	Serial.println("Antes de expansor");
 #endif
 	// Iniciamos el expansor. Si no se inicia detenemos el programa.
-	// if (!IniciaExpansor())
-	// {
-	// 	while (true)
-	// 	{
-	// 		delay(0);
-	// 	}
-	// }
+	if (!IniciaExpansor())
+	{
+		while (true)
+		{
+			delay(0);
+		}
+	}
 
 	// Configuramos el expansor para que genere una interrupción al pulsar cualquier botón de los puertos A o B
 	// Parámetro 1: true = Interrupción conjunta | false = interrupciones separadas para PORT A y B

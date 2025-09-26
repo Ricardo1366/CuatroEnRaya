@@ -196,6 +196,7 @@ void LetraEnConfig()
 	case ModoConfiguracion::Ninguna:
 		// Si no hay seleccionado un modo de configuración no hacemos nada.
 		return;
+		break;
 	case ModoConfiguracion::Turno:
 		// Si no es el pulsador 1 o 2 no hacemos nada.
 #if defined(DEBUG)
@@ -328,7 +329,7 @@ void MuestraConfiguracion()
 		break;
 
 	// default:
-		// break;
+	// 	break;
 	}
 }
 
