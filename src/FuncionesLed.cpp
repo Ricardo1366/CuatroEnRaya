@@ -15,7 +15,8 @@ void AsignaLetra()
 	{
 		leds[pulsadores.posicion(i, ledsLetras)] = i == letra ? color[nivel][turno1 ? 1 : 2] : CRGB::Black;
 	}
-	LEDS.show();
+	FastLED.show();
+	
 }
 
 // Enciende el led del número seleccionado.
@@ -26,7 +27,7 @@ void AsignaNumero()
 	{
 		leds[pulsadores.posicion(i, ledsNumeros)] = i == numero ? color[nivel][turno1 ? 1 : 2] : CRGB::Black;
 	}
-	LEDS.show();
+	FastLED.show();
 }
 
 // Calculamos el valor del color.

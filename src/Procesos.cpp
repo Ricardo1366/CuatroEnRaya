@@ -195,7 +195,7 @@ void LetraEnConfig()
 	{
 	case ModoConfiguracion::Ninguna:
 		// Si no hay seleccionado un modo de configuración no hacemos nada.
-		break;
+		return;
 	case ModoConfiguracion::Turno:
 		// Si no es el pulsador 1 o 2 no hacemos nada.
 #if defined(DEBUG)
@@ -236,6 +236,7 @@ void LetraEnConfig()
 		configTemp.NivelIntensidad = letra + 1;
 		MuestraConfiguracion();
 		break;
+
 	default:
 		break;
 	}
@@ -244,14 +245,14 @@ void LetraEnConfig()
 // Muetra el "valor" del modo de configuración seleccionado.
 void MuestraConfiguracion()
 {
-	// Borramos todos los leds.
-	LEDS.showColor(CRGB::Black);
+	// Borramos todos los FastLED.
+	FastLED.showColor(CRGB::Black);
 
 	switch (modoConfig)
 	{
 	case ModoConfiguracion::Ninguna:
 		// Iluminamos todos los leds con el color de fondo.
-		LEDS.showColor(DameColor(0, DameIntensidadFondo(configTemp.NivelIntensidad)));
+		FastLED.showColor(DameColor(0, DameIntensidadFondo(configTemp.NivelIntensidad)));
 		break;
 
 	case ModoConfiguracion::Turno:
@@ -262,7 +263,7 @@ void MuestraConfiguracion()
 		leds[pulsadores.posicion(0,ledsLetras)] = DameColor(configTemp.color1, configTemp.NivelIntensidad);
 		leds[pulsadores.posicion(1,ledsLetras)] = DameColor(configTemp.color2, configTemp.NivelIntensidad);
 
-		LEDS.show();
+		FastLED.show();
 		break;
 	case ModoConfiguracion::Color1:
 		// Es el color del turno 1
@@ -278,7 +279,7 @@ void MuestraConfiguracion()
 		leds[pulsadores.posicion(6,ledsLetras)] = CRGB::Black;
 		leds[pulsadores.posicion(7,ledsLetras)] = CRGB::Black;
 
-		LEDS.show();
+		FastLED.show();
 		break;
 	case ModoConfiguracion::Color2:
 		// Es el color del turno 1
@@ -294,7 +295,7 @@ void MuestraConfiguracion()
 		leds[pulsadores.posicion(6,ledsLetras)] = CRGB::Black;
 		leds[pulsadores.posicion(7,ledsLetras)] = CRGB::Black;
 
-		LEDS.show();
+		FastLED.show();
 		break;
 
 	case ModoConfiguracion::Intensidad:
@@ -325,8 +326,9 @@ void MuestraConfiguracion()
 		}
 
 		break;
-	default:
-		break;
+
+	// default:
+		// break;
 	}
 }
 
@@ -387,7 +389,7 @@ void SinExpansor()
 		leds[tableroLed.posicion(i, i)] = CRGB::Red;
 		leds[tableroLed.posicion(i, 5 - i)] = CRGB::Red;
 	}
-	LEDS.show();
+	FastLED.show();
 }
 
 // Cargamos los valores por defecto de la configuración.

@@ -48,7 +48,7 @@ uint32 tiempoActivacion;
 ModoConfiguracion modoConfig = ModoConfiguracion::Ninguna; // indica que opción está configurando el usuario.
 
 // ######## VARIABLES CONTROL LEDS ##################
-CRGB leds[numeroLeds]; // Array leds.
+CRGB leds[numeroLeds]; // Array FastLED.
 CRGB colores[7];	   // Posibles colores a utilizar. (El 0 es el de fondo)
 CRGB color[2][3];	   // Array colores (3 colores x 2 intensidades)
 byte nivel = 0;
@@ -89,10 +89,6 @@ void setup()
 	byte intensidadFondo = 0;
 
 	// Si estamos en modo "Depurar" activamos la comunicación con el monitor serial.
-#if defined(DEBUG_)
-	Serial.begin(115200);
-#endif
-
 #if defined(DEBUG)
 	Serial.begin(115200);
 	delay(2000);
@@ -198,29 +194,38 @@ void setup()
 	// Asignamos turno.
 	turno1 = config.Turno;
 
-	// Habilitamos la matriz de leds.
-	LEDS.addLeds<WS2812B, pinLeds, RGB>(leds, numeroLeds);
-
+	// Habilitamos la matriz de FastLED.
+	FastLED.addLeds<WS2812B, pinLeds, RGB>(leds, numeroLeds);
+#if defined(DEBUG)
+	Serial.println(F("FastLED iniciado. "));
+#endif
 	// Configuramos los pines I/O del ESP8266
 	pinMode(pinAltavoz, OUTPUT);
 	pinMode(pinInterrupciones, INPUT);
 	pinMode(pinReset, OUTPUT);
-
+#if defined(DEBUG)
+	Serial.println("Antes de expansor");
+#endif
 	// Iniciamos el expansor. Si no se inicia detenemos el programa.
-	if (!IniciaExpansor())
-	{
-		while (true)
-		{
-			delay(0);
-		}
-	}
+	// if (!IniciaExpansor())
+	// {
+	// 	while (true)
+	// 	{
+	// 		delay(0);
+	// 	}
+	// }
 
 	// Configuramos el expansor para que genere una interrupción al pulsar cualquier botón de los puertos A o B
 	// Parámetro 1: true = Interrupción conjunta | false = interrupciones separadas para PORT A y B
 	// Parámetro 2: Indica si los pines configurados para la interrupción estarán "abiertos" o no.
 	// Parámetro 3: Indica con que valor se activa la interrupción HIGH o LOW
+#if defined(DEBUG)
+	Serial.println("Antes de interrupciones expansor");
+#endif
 	expansor.setupInterrupts(true, false, LOW);
-
+#if defined(DEBUG)
+	Serial.println("Antes de habilitar patillas expansor");
+#endif
 	// Habilitamos todas las patillas (16) como entradas y habilitamos la resistencia interna.
 	for (byte i = 0; i < 16; i++)
 	{
@@ -229,22 +234,32 @@ void setup()
 		expansor.pinMode(i, INPUT_PULLUP);
 		expansor.setupInterruptPin(i, LOW);
 	}
-
+#if defined(DEBUG)
+	Serial.println("Tablero led (LEDS)");
+#endif
 	// Inicializamos la función que nos va a calcular la posición del led en el tablero.
 	tableroLed.begin(NUMEROCOLUMNAS, NUMEROFILAS, ml_Inicio::Inicio_Inferior_Izquierda, ml_Direccion::Direccion_Vertical);
-
+#if defined(DEBUG)
+	Serial.println("Tablero led (Pulsadores)");
+#endif
 	// Los pulsadores están después del tablero. Hay que indicar el offset con el número de leds del tablero.
 	pulsadores.begin(NUMEROPULSADORES, 2, ml_Inicio::Inicio_Inferior_Izquierda, ml_Direccion::Direccion_Horizontal, NUMEROFILAS * NUMEROCOLUMNAS);
-
+#if defined(DEBUG)
+	Serial.println("Antes de leer expansor");
+#endif
 	// Antes de activar las interrupciones del ESP8266 leemos el expansor por si hay alguna interrupción
 	// pendiente, borrarla y empezar "limpios".
 	pulsador = expansor.readGPIOAB();
-
+#if defined(DEBUG)
+	Serial.println("Antes de interrupciones");
+#endif
 	// Habilita las interrupciones en el ESP8266
 	attachInterrupt(pinInterrupciones, ComprobarLectura, FALLING);
-
+#if defined(DEBUG)
+	Serial.println("Despues de interrupciones");
+#endif
 	// Iniciamos el tablero.
-	LEDS.clear(true);
+	FastLED.clear(true);
 	IniciaTablero();
 
 	ultimaPulsacion = millis();
@@ -348,8 +363,8 @@ void loop()
 					for (byte i = 0; i < 4; i++)
 					{
 						/* code */
-						LEDS.clear(true);
-						LEDS.show();
+						FastLED.clear(true);
+						FastLED.show();
 						delay(500);
 						PintaTablero();
 						delay(500);
@@ -464,7 +479,7 @@ void loop()
 						leds[tableroLed.posicion(i, j)] = contador == (i + 1) ? color[0][0] : CRGB::Black;
 					}
 				}
-				LEDS.show();
+				FastLED.show();
 				break;
 			case Pr_MuestraGanador:
 				nivel++;
@@ -498,7 +513,7 @@ void loop()
 					// Alterna el brillo de los leds entre normal y alto de la jugada ganadora.
 					leds[tableroLed.posicion(ganador.columna + i * avanceColumna, ganador.fila + i * avanceFila)] = color[nivel][ganador.jugador];
 				}
-				LEDS.show();
+				FastLED.show();
 				juegoEnMarcha = false;
 				break;
 			case Pr_Animacion:
@@ -507,151 +522,153 @@ void loop()
 				{
 				case Animacion::barraVertical:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaBarra(contador, true, DameColor(contador / NUMEROCOLUMNAS, config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 
 				case Animacion::barraHorizontal:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaBarra(contador, false, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 
 				case Animacion::barraVerticalInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaBarra((repeticiones - contador), true, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 
 				case Animacion::barraHorizontalInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaBarra((repeticiones - contador), false, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 
 				case Animacion::diagonalIzq:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 
 				case Animacion::diagonalDcha:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 
 				case Animacion::diagonalIzqInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 
 				case Animacion::diagonalDchaInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::dobleBarraHorizontal:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaBarra(contador, false, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
 					calculaBarra(repeticiones - contador, false, DameColor(contador / NUMEROFILAS, config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::dobleBarraVertical:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaBarra(contador, true, DameColor(contador / NUMEROCOLUMNAS, config.NivelIntensidad));
 					calculaBarra(repeticiones - contador, true, DameColor(contador / NUMEROCOLUMNAS, config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::dobleDiagonalIzquierda:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 
 				case Animacion::dobleDiagonalDerecha:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::diagonalIzdaDcha:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					calculaDiagonal(contador % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::diagonalIzdaDchaInversa:
 					// Contador empieza en 1, pero esta función empieza por cero.
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), false, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
 					calculaDiagonal((repeticiones - contador) % (NUMEROFILAS * 2 - 1), true, DameColor(contador / (NUMEROFILAS * 2 - 1), config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::cuadrados:
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaCuadrado(contador % veces, DameColor(contador / veces, config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::cuadradosInversos:
-					LEDS.clear(true);
+					FastLED.clear(true);
 					calculaCuadrado(veces - (contador % veces) - 1, DameColor(contador / veces, config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::cuadradosColoridos:
 					calculaCuadrado(contador % veces, DameColor(contador % numeroColores, config.NivelIntensidad));
-					LEDS.show();
+					FastLED.show();
 					break;
 
 				case Animacion::elCorreCaminos:
-					LEDS.clear(true);
+					FastLED.clear(true);
 					leds[contador % (NUMEROCOLUMNAS * NUMEROFILAS)] = DameColor(contador / (NUMEROCOLUMNAS * NUMEROFILAS), config.NivelIntensidad);
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::cruceVertical:
-					LEDS.clear(true);
+					FastLED.clear(true);
 					for (byte i = 0; i < NUMEROCOLUMNAS; i += 2)
 					{
 						leds[tableroLed.posicion(i, contador % NUMEROFILAS)] = DameColor(contador / NUMEROFILAS, config.NivelIntensidad);
 						leds[tableroLed.posicion(i + 1, NUMEROFILAS - (contador % NUMEROFILAS) - 1)] = DameColor(contador / NUMEROFILAS, config.NivelIntensidad);
 					}
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::ajedrez:
 					if (contador % NUMEROFILAS == 0)
 					{
-						LEDS.clear(true);
+						FastLED.clear(true);
 					}
 					for (byte i = 0; i < NUMEROCOLUMNAS; i += 2)
 					{
 						X = contador / NUMEROFILAS;
 						Y = X + 1;
-						if (X > numeroColores)	X = 0;
-						if (Y > numeroColores)	Y = 0;
+						if (X > numeroColores)
+							X = 0;
+						if (Y > numeroColores)
+							Y = 0;
 						leds[tableroLed.posicion(i, contador % NUMEROFILAS)] = contador % 2 == 0 ? DameColor(X, config.NivelIntensidad) : DameColor(Y, config.NivelIntensidad);
 						leds[tableroLed.posicion(i + 1, contador % NUMEROFILAS)] = contador % 2 == 1 ? DameColor(X, config.NivelIntensidad) : DameColor(Y, config.NivelIntensidad);
 					}
-					LEDS.show();
+					FastLED.show();
 					break;
 				case Animacion::mosca:
 					leds[tableroLed.posicion(X, Y)] = 0;
 					Mosca();
-					LEDS.show();
+					FastLED.show();
 					break;
 				default:
 					break;
@@ -750,7 +767,7 @@ void loop()
 			tiempo_PorPaso = 75;
 			X = NUMEROCOLUMNAS / 2;
 			Y = NUMEROFILAS / 2;
-			LEDS.clear(true);
+			FastLED.clear(true);
 			randomSeed(millis());
 		}
 
@@ -798,7 +815,7 @@ void loop()
 			// No se comprueba nada (por ahora).
 			break;
 		case Pr_InicioTablero:
-			LEDS.clear(true);
+			FastLED.clear(true);
 			PintaTablero();
 			break;
 		case Pr_MuestraGanador:

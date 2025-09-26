@@ -6,12 +6,12 @@
 #include <Adafruit_MCP23X17.h>
 #include <EEPROM.h>
 
-#define NODEBUG
+#define DEBUG
 
 #define NUMEROFILAS 8
 #define NUMEROCOLUMNAS 8
 #define NUMEROPULSADORES 8
-#define TIEMPOANIMACION 60000			// 1 minuto
+#define TIEMPOANIMACION 30000			// 1 minuto
 #define TIEMPOPPARTIDAABANDONADA 300000	// 5 minutos
 #define TIEMPOPASOANIMACIONES 125
 
