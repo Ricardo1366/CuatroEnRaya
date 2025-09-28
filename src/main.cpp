@@ -298,7 +298,7 @@ void loop()
 		}
 		// Comprobamos que la lectura sea buena.
 		if (pulsador > 15)
-		{
+		{ 
 			pulsador = 255;
 		}
 
@@ -472,9 +472,10 @@ void loop()
 				PintaTablero();
 				break;
 			case Pr_InicioTablero:
-				for (byte i = 0; i < 8; i++)
+				// Pintamos todo el tablero con el color de fondo.
+				for (byte i = 0; i < NUMEROCOLUMNAS; i++)
 				{
-					for (byte j = 0; j < 8; j++)
+					for (byte j = 0; j < NUMEROFILAS; j++)
 					{
 						leds[tableroLed.posicion(i, j)] = contador == (i + 1) ? color[0][0] : CRGB::Black;
 					}
@@ -482,11 +483,12 @@ void loop()
 				FastLED.show();
 				break;
 			case Pr_MuestraGanador:
-				nivel++;
+				nivel++;				// Nivel de brillo.
 				if (nivel > 1)
 				{
 					nivel = 0;
 				}
+				// Calculamos el avance en filas y columnas según como estén alineadas las fichas ganadoras.
 				switch (ganador.modo)
 				{
 				case Modo::Vertical:
@@ -517,7 +519,6 @@ void loop()
 				juegoEnMarcha = false;
 				break;
 			case Pr_Animacion:
-				// Si hemos llegado a la última animación empezamos de nuevo por la primera.
 				switch (animacion)
 				{
 				case Animacion::barraVertical:
@@ -704,7 +705,8 @@ void loop()
 			enProceso = false;
 			ultimaPulsacion = millis();
 			animacion = Animacion::ninguna;
-			// ver que hago.
+			// Borramos la animación y pintamos el tablero con lo que habia antes.
+			PintaTablero();
 		}
 
 		// Comprobamos si ha pasado el tiempo necesario para activar una animación.
@@ -726,13 +728,14 @@ void loop()
 		enProceso = true;
 		proceso = Pr_Animacion;
 		animacion++;
+		siguientePaso = true;
+		tiempo_PorPaso = TIEMPOPASOANIMACIONES;
+
+		// Si hemos llegado a la última animación empezamos de nuevo por la primera.
 		if (animacion == Animacion::NumeroAnimaciones)
 		{
 			animacion = 1;
 		}
-		enProceso = true;
-		siguientePaso = true;
-		tiempo_PorPaso = TIEMPOPASOANIMACIONES;
 
 		// Configuramos repeticiones, tiempo por paso y otras características de las animaciones.
 		if (animacion >= Animacion::barraVertical && animacion <= Animacion::dobleBarraVertical)
